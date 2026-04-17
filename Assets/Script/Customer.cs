@@ -10,9 +10,7 @@ public class Customer : MonoBehaviour
 
     private NavMeshAgent agent;
 
-    // ------------------------
-    // STATES
-    // ------------------------
+    // ---------------- STATES ----------------
     private enum State
     {
         Wander,
@@ -23,9 +21,7 @@ public class Customer : MonoBehaviour
 
     private State state;
 
-    // ------------------------
-    // ORDER SYSTEM
-    // ------------------------
+    // ---------------- ORDER SYSTEM ----------------
     public enum DrinkType
     {
         Beer,
@@ -36,9 +32,7 @@ public class Customer : MonoBehaviour
     private DrinkType currentOrder;
     private bool hasOrdered = false;
 
-    // ------------------------
-    // UI
-    // ------------------------
+    // ---------------- UI ----------------
     [Header("UI")]
     public Image orderIcon;
 
@@ -46,9 +40,7 @@ public class Customer : MonoBehaviour
     public Sprite wineSprite;
     public Sprite cocktailSprite;
 
-    // ------------------------
-    // TIMERS
-    // ------------------------
+    // ---------------- TIMERS ----------------
     private float waitTimer;
     private float decisionDelay;
 
@@ -85,9 +77,7 @@ public class Customer : MonoBehaviour
         }
     }
 
-    // ------------------------
-    // WANDER
-    // ------------------------
+    // ---------------- WANDER ----------------
     void HandleWander()
     {
         if (!agent.pathPending && agent.remainingDistance < 0.5f)
@@ -105,9 +95,7 @@ public class Customer : MonoBehaviour
         agent.SetDestination(randomPoint.position);
     }
 
-    // ------------------------
-    // DECIDE
-    // ------------------------
+    // ---------------- DECIDE ----------------
     void HandleDecide()
     {
         decisionDelay -= Time.deltaTime;
@@ -128,9 +116,7 @@ public class Customer : MonoBehaviour
         }
     }
 
-    // ------------------------
-    // GO TO BARTENDER
-    // ------------------------
+    // ---------------- BARTENDER ----------------
     void GoToBartender()
     {
         if (bartender == null) return;
@@ -150,9 +136,7 @@ public class Customer : MonoBehaviour
         }
     }
 
-    // ------------------------
-    // CREATE ORDER
-    // ------------------------
+    // ---------------- ORDER ----------------
     void CreateOrder()
     {
         currentOrder = (DrinkType)Random.Range(0, 3);
@@ -163,9 +147,6 @@ public class Customer : MonoBehaviour
         Debug.Log("Customer wants: " + currentOrder);
     }
 
-    // ------------------------
-    // UPDATE UI
-    // ------------------------
     void UpdateOrderUI()
     {
         if (orderIcon == null) return;
@@ -194,55 +175,42 @@ public class Customer : MonoBehaviour
             orderIcon.gameObject.SetActive(false);
     }
 
-    // ------------------------
-    // WAITING
-    // ------------------------
+    // ---------------- WAITING ----------------
     void HandleWaiting()
     {
         waitTimer -= Time.deltaTime;
 
         if (waitTimer <= 0f)
         {
-            Debug.Log("Customer got tired and leaves");
-
             LeaveAngry();
         }
     }
 
-    // ------------------------
-    // PLAYER INTERACTION
-    // ------------------------
+    // ---------------- PLAYER INTERACTION ----------------
     void OnMouseDown()
     {
         if (state == State.Waiting && hasOrdered)
         {
-            // TEMP: sempre Beer
-            ServeDrink(DrinkType.Beer);
+            TryServeFromInventory();
         }
     }
 
-    // ------------------------
-    // SERVE DRINK
-    // ------------------------
-    public void ServeDrink(DrinkType servedDrink)
+    void TryServeFromInventory()
     {
-        if (!hasOrdered) return;
+        bool success = Inventory.Instance.UseItem((Inventory.ItemType)currentOrder);
 
-        if (servedDrink == currentOrder)
+        if (success)
         {
-            Debug.Log("Correct drink!");
+            Debug.Log("Correct drink served!");
             LeaveHappy();
         }
         else
         {
-            Debug.Log("Wrong drink!");
-            LeaveAngry();
+            Debug.Log("You don't have the item!");
         }
     }
 
-    // ------------------------
-    // RESULTS
-    // ------------------------
+    // ---------------- RESULTS ----------------
     void LeaveHappy()
     {
         hasOrdered = false;
