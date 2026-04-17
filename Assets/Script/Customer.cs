@@ -1,14 +1,18 @@
 ﻿using UnityEngine;
 using UnityEngine.AI;
+using UnityEngine.UI;
 
 public class Customer : MonoBehaviour
 {
     [Header("References")]
-    public Transform bartender;          // ponto do balcão
-    public Transform[] wanderPoints;     // pontos para andar pelo bar
+    public Transform bartender;
+    public Transform[] wanderPoints;
 
     private NavMeshAgent agent;
 
+    // ------------------------
+    // STATES
+    // ------------------------
     private enum State
     {
         Wander,
@@ -19,6 +23,32 @@ public class Customer : MonoBehaviour
 
     private State state;
 
+    // ------------------------
+    // ORDER SYSTEM
+    // ------------------------
+    public enum DrinkType
+    {
+        Beer,
+        Wine,
+        Cocktail
+    }
+
+    private DrinkType currentOrder;
+    private bool hasOrdered = false;
+
+    // ------------------------
+    // UI
+    // ------------------------
+    [Header("UI")]
+    public Image orderIcon;
+
+    public Sprite beerSprite;
+    public Sprite wineSprite;
+    public Sprite cocktailSprite;
+
+    // ------------------------
+    // TIMERS
+    // ------------------------
     private float waitTimer;
     private float decisionDelay;
 
@@ -28,6 +58,9 @@ public class Customer : MonoBehaviour
 
         state = State.Wander;
         GoToRandomPoint();
+
+        if (orderIcon != null)
+            orderIcon.gameObject.SetActive(false);
     }
 
     void Update()
@@ -59,7 +92,6 @@ public class Customer : MonoBehaviour
     {
         if (!agent.pathPending && agent.remainingDistance < 0.5f)
         {
-            // chegou ao ponto → começa a decidir
             state = State.Decide;
             decisionDelay = Random.Range(2f, 5f);
         }
@@ -101,6 +133,8 @@ public class Customer : MonoBehaviour
     // ------------------------
     void GoToBartender()
     {
+        if (bartender == null) return;
+
         state = State.GoToBartender;
         agent.SetDestination(bartender.position);
     }
@@ -110,10 +144,54 @@ public class Customer : MonoBehaviour
         if (!agent.pathPending && agent.remainingDistance < 0.5f)
         {
             state = State.Waiting;
-            waitTimer = 10f; // tempo antes de ficar irritado
+            waitTimer = 10f;
 
-            Debug.Log("Customer waiting for drink");
+            CreateOrder();
         }
+    }
+
+    // ------------------------
+    // CREATE ORDER
+    // ------------------------
+    void CreateOrder()
+    {
+        currentOrder = (DrinkType)Random.Range(0, 3);
+        hasOrdered = true;
+
+        UpdateOrderUI();
+
+        Debug.Log("Customer wants: " + currentOrder);
+    }
+
+    // ------------------------
+    // UPDATE UI
+    // ------------------------
+    void UpdateOrderUI()
+    {
+        if (orderIcon == null) return;
+
+        orderIcon.gameObject.SetActive(true);
+
+        switch (currentOrder)
+        {
+            case DrinkType.Beer:
+                orderIcon.sprite = beerSprite;
+                break;
+
+            case DrinkType.Wine:
+                orderIcon.sprite = wineSprite;
+                break;
+
+            case DrinkType.Cocktail:
+                orderIcon.sprite = cocktailSprite;
+                break;
+        }
+    }
+
+    void HideOrderUI()
+    {
+        if (orderIcon != null)
+            orderIcon.gameObject.SetActive(false);
     }
 
     // ------------------------
@@ -127,9 +205,59 @@ public class Customer : MonoBehaviour
         {
             Debug.Log("Customer got tired and leaves");
 
-            // volta a vaguear (ou depois podes fazer sair do bar)
-            state = State.Wander;
-            GoToRandomPoint();
+            LeaveAngry();
         }
+    }
+
+    // ------------------------
+    // PLAYER INTERACTION
+    // ------------------------
+    void OnMouseDown()
+    {
+        if (state == State.Waiting && hasOrdered)
+        {
+            // TEMP: sempre Beer
+            ServeDrink(DrinkType.Beer);
+        }
+    }
+
+    // ------------------------
+    // SERVE DRINK
+    // ------------------------
+    public void ServeDrink(DrinkType servedDrink)
+    {
+        if (!hasOrdered) return;
+
+        if (servedDrink == currentOrder)
+        {
+            Debug.Log("Correct drink!");
+            LeaveHappy();
+        }
+        else
+        {
+            Debug.Log("Wrong drink!");
+            LeaveAngry();
+        }
+    }
+
+    // ------------------------
+    // RESULTS
+    // ------------------------
+    void LeaveHappy()
+    {
+        hasOrdered = false;
+        HideOrderUI();
+
+        state = State.Wander;
+        GoToRandomPoint();
+    }
+
+    void LeaveAngry()
+    {
+        hasOrdered = false;
+        HideOrderUI();
+
+        state = State.Wander;
+        GoToRandomPoint();
     }
 }
